@@ -109,12 +109,11 @@ export default function AdminPage() {
       imageUrl = await handleImageUpload();
     }
 
-    // إرسال البيانات بجميع الاحتمالات لتجنب أي خطأ في أسماء الأعمدة بقاعدة البيانات
+    // إرسال الأعمدة المتوافقة حصراً مع قاعدة بياناتك الحقيقية
     const itemData = {
       name: newItem.name,
       price: Number(newItem.price),
       image_url: imageUrl,
-      image: imageUrl,
       is_special: Boolean(newItem.is_special)
     };
 
