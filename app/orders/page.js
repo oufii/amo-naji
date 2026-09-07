@@ -45,12 +45,26 @@ export default function OrdersPage() {
     else fetchOrders();
   };
 
-  // دالة طباعة الوصل الحراري
+  // دالة طباعة الوصل الحراري (تعمل مع كل الطلبات بدون استثناء)
   const handlePrintReceipt = (order) => {
     const printWindow = window.open('', '_blank');
-    const itemsList = Array.isArray(order.items) 
-      ? order.items.map(i => `<tr><td>${i.name || i.title}</td><td>${i.quantity || 1}</td><td>${Number(i.price || 0).toLocaleString()} د.ع</td></tr>`).join('')
-      : `<tr><td colspan="3">تفاصيل الطلب غير متوفرة</td></tr>`;
+    
+    // تجهيز قائمة الوجبات بشكل آمن
+    let itemsList = '';
+    try {
+      const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+      if (Array.isArray(items) && items.length > 0) {
+        itemsList = items.map(i => `<tr><td>${i.name || i.title || 'وجبة'}</td><td>${i.quantity || 1}</td><td>${Number(i.price || 0).toLocaleString()} د.ع</td></tr>`).join('');
+      } else {
+        itemsList = `<tr><td colspan="3">طلب عام / لا توجد تفاصيل وجبات مسجلة</td></tr>`;
+      }
+    } catch (e) {
+      itemsList = `<tr><td colspan="3">تفاصيل الوجبات غير متوفرة</td></tr>`;
+    }
+
+    const subtotal = order.subtotal || (order.total_price ? order.total_price - 500 : 0);
+    const deliveryFee = order.delivery_fee || 500;
+    const totalPrice = order.total_price || (subtotal + deliveryFee);
 
     printWindow.document.write(`
       <html lang="ar" dir="rtl">
@@ -60,17 +74,17 @@ export default function OrdersPage() {
           <style>
             body { font-family: 'Tahoma', sans-serif; width: 80mm; margin: 0 auto; padding: 10px; color: #000; direction: rtl; }
             .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
-            .header h1 { font-size: 20px; margin: 0 0 5px 0; font-weight: bold; }
-            .header p { font-size: 14px; margin: 0; }
+            .header h1 { font-size: 22px; margin: 0 0 5px 0; font-weight: bold; }
+            .header p { font-size: 14px; margin: 0; font-weight: bold; }
             .info { margin-bottom: 10px; font-size: 13px; border-bottom: 1px dashed #000; padding-bottom: 8px; }
-            .info p { margin: 4px 0; }
+            .info p { margin: 5px 0; }
             table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 12px; }
             th, td { border-bottom: 1px solid #ddd; padding: 6px 4px; text-align: right; }
-            th { background: #f2f2f2; }
+            th { background: #f2f2f2; font-weight: bold; }
             .totals { font-size: 13px; border-top: 1px dashed #000; padding-top: 8px; }
             .totals div { display: flex; justify-content: space-between; margin: 4px 0; }
-            .total-final { font-weight: bold; font-size: 15px; border-top: 1px solid #000; padding-top: 4px; margin-top: 4px; }
-            .footer { text-align: center; font-size: 11px; margin-top: 15px; border-top: 2px dashed #000; padding-top: 8px; }
+            .total-final { font-weight: bold; font-size: 15px; border-top: 1px solid #000; padding-top: 6px; margin-top: 4px; }
+            .footer { text-align: center; font-size: 12px; margin-top: 15px; border-top: 2px dashed #000; padding-top: 10px; font-weight: bold; }
           </style>
         </head>
         <body onload="window.print(); window.close();">
@@ -101,9 +115,9 @@ export default function OrdersPage() {
           </table>
 
           <div class="totals">
-            <div><span>مجموع الوجبات:</span> <span>${Number(order.subtotal || order.total_price - 500 || 0).toLocaleString()} د.ع</span></div>
-            <div><span>سعر التوصيل:</span> <span>${Number(order.delivery_fee || 500).toLocaleString()} د.ع</span></div>
-            <div class="total-final"><span>المبلغ الكلي:</span> <span>${Number(order.total_price || 0).toLocaleString()} د.ع</span></div>
+            <div><span>مجموع الوجبات:</span> <span>${Number(subtotal).toLocaleString()} د.ع</span></div>
+            <div><span>سعر التوصيل:</span> <span>${Number(deliveryFee).toLocaleString()} د.ع</span></div>
+            <div class="total-final"><span>المبلغ الكلي:</span> <span>${Number(totalPrice).toLocaleString()} د.ع</span></div>
           </div>
 
           <div class="footer">
@@ -172,7 +186,7 @@ export default function OrdersPage() {
                     <p><span className="text-slate-400">📞 الهاتف:</span> <a href={`tel:${order.phone}`} className="text-amber-400 underline font-bold">{order.phone || 'غير محدد'}</a></p>
                     <p><span className="text-slate-400">📍 العنوان:</span> {order.address || 'غير محدد'}</p>
                     {order.location_url && (
-                      <a href={order.location_url} target="_blank" rel="noopener noreferrer" className="inline-block mt-2 text-xs bg-blue-600/20 text-blue-400 border border-blue-500/30 px-3 py-1.5 rounded-lg font-bold">
+                      <a href={order.location_url} target="_blank" rel="noopener noreferrer" className="inline-block mt-2 text-xs bg-blue-600/20 text-blue-400 border border-blue-500/30 px-3 py.1.5 rounded-lg font-bold">
                         🗺️ عرض الموقع على الخريطة (GPS)
                       </a>
                     )}
@@ -182,7 +196,7 @@ export default function OrdersPage() {
                     <div className="space-y-1">
                       <div className="flex justify-between text-xs text-slate-400">
                         <span>مجموع الوجبات:</span>
-                        <span>{Number(order.subtotal || order.total_price - 500 || 0).toLocaleString()} د.ع</span>
+                        <span>{Number(order.subtotal || (order.total_price ? order.total_price - 500 : 0)).toLocaleString()} د.ع</span>
                       </div>
                       <div className="flex justify-between text-xs text-slate-400">
                         <span>سعر التوصيل:</span>
@@ -200,26 +214,30 @@ export default function OrdersPage() {
                 <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
                   <span className="text-xs font-bold text-slate-400 block">🍽️ الوجبات المطلوبة:</span>
                   <div className="space-y-1">
-                    {Array.isArray(order.items) ? (
-                      order.items.map((item, idx) => (
-                        <div key={idx} className="flex justify-between text-xs bg-slate-900 p-2 rounded-lg">
-                          <span>{item.name || item.title} × {item.quantity || 1}</span>
-                          <span className="text-amber-400 font-bold">{Number((item.price || 0) * (item.quantity || 1)).toLocaleString()} د.ع</span>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-xs text-slate-400">لا توجد تفاصيل متاحة للوجبات</p>
-                    )}
+                    {(() => {
+                      try {
+                        const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+                        if (Array.isArray(items) && items.length > 0) {
+                          return items.map((item, idx) => (
+                            <div key={idx} className="flex justify-between text-xs bg-slate-900 p-2 rounded-lg">
+                              <span>{item.name || item.title} × {item.quantity || 1}</span>
+                              <span className="text-amber-400 font-bold">{Number((item.price || 0) * (item.quantity || 1)).toLocaleString()} د.ع</span>
+                            </div>
+                          ));
+                        }
+                      } catch(e) {}
+                      return <p className="text-xs text-slate-400">تفاصيل الوجبات غير متوفرة أو طلب قديم</p>;
+                    })()}
                   </div>
                 </div>
 
-                {/* أزرار الإجراءات (طباعة، تسليم، حذف) */}
+                {/* أزرار الإجراءات (طباعة، تسليم، حذف) - زر الطباعة صار ظاهر لكل الطلبات بدون استثناء */}
                 <div className="flex items-center justify-between pt-2 border-t border-slate-800">
                   <button 
                     onClick={() => handlePrintReceipt(order)}
                     className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition flex items-center gap-1.5 shadow-lg shadow-blue-600/20"
                   >
-                    🖨️ طباعة الوصل
+                    🖨️ طباعة الوصل (جكن عمو ناجي)
                   </button>
 
                   <div className="flex items-center gap-2">
