@@ -15,10 +15,30 @@ export default function Home() {
   const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '', address: '' });
   const [locationUrl, setLocationUrl] = useState('');
   const [gettingLocation, setGettingLocation] = useState(false);
+  const [myLatestOrder, setMyLatestOrder] = useState(null);
 
   useEffect(() => {
     fetchData();
+    const savedOrderId = localStorage.getItem('amo_naji_last_order_id');
+    if (savedOrderId) {
+      fetchOrderStatus(savedOrderId);
+      const interval = setInterval(() => {
+        fetchOrderStatus(savedOrderId);
+      }, 10000);
+      return () => clearInterval(interval);
+    }
   }, []);
+
+  async function fetchOrderStatus(orderId) {
+    const { data } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .single();
+    if (data) {
+      setMyLatestOrder(data);
+    }
+  }
 
   async function fetchData() {
     const { data: menuData } = await supabase
@@ -107,9 +127,8 @@ export default function Home() {
     if (cart.length === 0) return alert('السلة فارغة!');
     if (!settings.is_delivery_available) return alert('عذراً، التوصيل غير متاح حالياً!');
 
-    // حفظ الطلب في جدول orders بقاعدة البيانات لكي يظهر في لوحة الطلبات
     try {
-      await supabase.from('orders').insert([
+      const { data } = await supabase.from('orders').insert([
         {
           customer_name: customerInfo.name,
           customer_phone: customerInfo.phone,
@@ -118,9 +137,16 @@ export default function Home() {
           items: cart,
           food_total: foodTotal,
           delivery_fee: currentDeliveryFee,
-          grand_total: grandTotal
+          grand_total: grandTotal,
+          status: 'pending'
         }
-      ]);
+      ]).select();
+
+      if (data && data.length > 0) {
+        const newOrderId = data[0].id;
+        localStorage.setItem('amo_naji_last_order_id', newOrderId);
+        setMyLatestOrder(data[0]);
+      }
     } catch (err) {
       console.log('Error saving order:', err);
     }
@@ -143,6 +169,7 @@ export default function Home() {
 
     const encodedMessage = encodeURIComponent(message);
     window.open(`https://wa.me/${settings.whatsapp_number}?text=${encodedMessage}`, '_blank');
+    setIsCheckoutOpen(false);
   };
 
   return (
@@ -158,6 +185,40 @@ export default function Home() {
           <span className="text-emerald-400 font-bold">{foodTotal.toLocaleString()} د.ع</span>
         </button>
       </header>
+
+      {/* شاشة تتبع الطلب الحية للزبون */}
+      {myLatestOrder && (
+        <div className="max-w-6xl mx-auto px-6 mt-6">
+          <div className="bg-slate-900 border border-amber-500/40 rounded-2xl p-5 flex flex-col md:flex-row justify-between items-center gap-4 shadow-lg shadow-amber-500/5">
+            <div className="space-y-1.5 text-center md:text-right">
+              <div className="flex items-center justify-center md:justify-start gap-3">
+                <span className="text-amber-400 font-black text-lg">طلب رقم #{myLatestOrder.id}</span>
+                <span className={`text-xs px-3 py-1 rounded-full font-bold ${
+                  myLatestOrder.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                  myLatestOrder.status === 'on_the_way' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 
+                  'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                }`}>
+                  {myLatestOrder.status === 'completed' ? '✅ تم تسليم الطلب وأرشفته بنجاح' :
+                   myLatestOrder.status === 'on_the_way' ? '🛵 المندوب في الطريق إليك' : 
+                   '👨‍🍳 الطلب قيد التحضير في المطعم'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-400">
+                {myLatestOrder.status === 'completed' ? 'شكراً لطلبك من مطعم عمو ناجي، نتمنى لك وجبة شهية وعليكم بالعافية!' : 
+                 myLatestOrder.status === 'on_the_way' ? 'طلبك طلع وي المندوب وقريب يوصل لعنوانك.' :
+                 'تم استلام طلبك بنجاح وجاري تجهيزه من قبل الشيف.'}
+              </p>
+            </div>
+            
+            <button 
+              onClick={() => fetchOrderStatus(myLatestOrder.id)}
+              className="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2"
+            >
+              <span>🔄 تحديث الحالة</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       <main className="max-w-6xl mx-auto p-6 space-y-10">
         {menu.some(i => i.is_offer) && (
@@ -262,7 +323,7 @@ export default function Home() {
 
             <form onSubmit={handleSendWhatsApp} className="space-y-3">
               <input type="text" placeholder="الاسم" required value={customerInfo.name} onChange={e => setCustomerInfo({...customerInfo, name: e.target.value})} className="w-full bg-slate-950 p-3 rounded-xl border border-slate-800 text-sm text-white" />
-              <input type="tel" placeholder="رقم الهاتف" required value={customerInfo.phone} onChange={e => setCustomerInfo({...customerInfo, phone: e.target.value})} className="w-full bg-slate-950 p-3 rounded-xl border border-slate-800 text-sm text-white" />
+              <input type="tel" placeholder="رقم الهاتف" required value={customerInfo.phone} onChange=_{e => setCustomerInfo({...customerInfo, phone: e.target.value})} className="w-full bg-slate-950 p-3 rounded-xl border border-slate-800 text-sm text-white" />
               <textarea placeholder="العنوان التفصيلي" required value={customerInfo.address} onChange={e => setCustomerInfo({...customerInfo, address: e.target.value})} className="w-full bg-slate-950 p-3 rounded-xl border border-slate-800 text-sm h-20 text-white"></textarea>
 
               <button 
