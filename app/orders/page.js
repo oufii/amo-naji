@@ -9,32 +9,33 @@ export default function OrdersPage() {
 
   useEffect(() => {
     fetchOrders();
-    const interval = setInterval(fetchOrders, 5000);
+    const interval = setInterval(fetchOrders, 4000);
     return () => clearInterval(interval);
   }, [tab]);
 
   async function fetchOrders() {
-    let query = supabase.from('orders').select('*').order('id', { ascending: false });
-    
-    if (tab === 'active') {
-      query = query.neq('status', 'completed');
-    } else {
-      query = query.eq('status', 'completed');
+    // جلب كل الطلبات بدون شروط معقدة لتجنب أي خطأ بالفلترة
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .order('id', { ascending: false });
+
+    if (error) {
+      console.error('خطأ في جلب الطلبات:', error);
+      return;
     }
 
-    const { data, error } = await query;
     if (data) {
-      setOrders(data);
-    } else if (error) {
-      // فلترة احتياطية في حال عدم توفر عمود status بالجدولة بعد
-      const { data: allData } = await supabase.from('orders').select('*').order('id', { ascending: false });
-      if (allData) {
-        const filtered = allData.filter(order => {
-          const status = order.status || 'pending';
-          return tab === 'active' ? status !== 'completed' : status === 'completed';
-        });
-        setOrders(filtered);
-      }
+      // فلترة الطلبات بناءً على التبويب المختار محلياً لضمان عدم اختفائها
+      const filtered = data.filter(order => {
+        const status = order.status || 'pending';
+        if (tab === 'active') {
+          return status !== 'completed';
+        } else {
+          return status === 'completed';
+        }
+      });
+      setOrders(filtered);
     }
   }
 
@@ -45,19 +46,20 @@ export default function OrdersPage() {
       .eq('id', id);
 
     if (error) {
-      alert('تم تحديث الطلب محلياً أو حدث خطأ في عمود الحالة (تأكد من وجود عمود status في سوبابيس)');
+      alert('حدث خطأ أثناء تحديث حالة الطلب');
+    } else {
+      fetchOrders();
     }
-    fetchOrders();
   };
 
   const handleDeleteOrder = async (id) => {
-    if (!confirm('متأكد من حذف الطلب؟')) return;
+    if (!confirm('هل أنت متأكد من حذف هذا الطلب؟')) return;
     const { error } = await supabase
       .from('orders')
       .delete()
       .eq('id', id);
 
-    if (error) alert('خطأ في الحذف');
+    if (error) alert('خطأ في حذف الطلب');
     else fetchOrders();
   };
 
