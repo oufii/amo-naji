@@ -17,6 +17,9 @@ export default function AdminPage() {
   const [itemPrice, setItemPrice] = useState('');
   const [imageFile, setImageFile] = useState(null);
   
+  // حالة قائمة الوجبات
+  const [menuItems, setMenuItems] = useState([]);
+
   const [isSavingDelivery, setIsSavingDelivery] = useState(false);
   const [isAddingItem, setIsAddingItem] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
@@ -26,6 +29,7 @@ export default function AdminPage() {
     if (savedAuth === 'true') {
       setIsAuthenticated(true);
       fetchSettings();
+      fetchMenuItems();
     }
     setLoading(false);
   }, []);
@@ -43,12 +47,28 @@ export default function AdminPage() {
     }
   };
 
+  // جلب الوجبات الحالية من جدول menu_items
+  const fetchMenuItems = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('menu_items')
+        .select('*')
+        .order('id', { ascending: false });
+      if (data) {
+        setMenuItems(data);
+      }
+    } catch (e) {
+      console.log('Error fetching menu items:', e);
+    }
+  };
+
   const handleLogin = (e) => {
     e.preventDefault();
     if (pin === ADMIN_PIN) {
       localStorage.setItem('admin_authenticated', 'true');
       setIsAuthenticated(true);
       fetchSettings();
+      fetchMenuItems();
       setError('');
     } else {
       setError('الرمز السرّي غير صحيح!');
@@ -123,10 +143,32 @@ export default function AdminPage() {
       setItemName('');
       setItemPrice('');
       setImageFile(null);
+      
+      // تحديث قائمة الوجبات مباشرة باللوحة
+      fetchMenuItems();
     } catch (err) {
       setStatusMsg('❌ حدث خطأ أثناء الإضافة: ' + err.message);
     } finally {
       setIsAddingItem(false);
+    }
+  };
+
+  // 3. حذف وجبة من القائمة
+  const handleDeleteItem = async (id) => {
+    if (!confirm('هل أنت متأكد من حذف هذه الوجبة؟')) return;
+
+    try {
+      const { error } = await supabase
+        .from('menu_items')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setStatusMsg('🗑️ تم حذف الوجبة بنجاح');
+      fetchMenuItems(); // تحديث القائمة بعد الحذف
+    } catch (err) {
+      setStatusMsg('❌ فشل الحذف: ' + err.message);
     }
   };
 
@@ -248,6 +290,40 @@ export default function AdminPage() {
               {isAddingItem ? 'جاري الإضافة والرفع...' : 'إضافة الوجبة'}
             </button>
           </form>
+        </div>
+
+        {/* قسم قائمة الوجبات الحالية وإدارتها (حذف) */}
+        <div style={{ background: '#1e293b', padding: '20px', borderRadius: '12px' }}>
+          <h3 style={{ marginTop: 0, color: '#34d399' }}>📋 الوجبات الحالية في القائمة ({menuItems.length})</h3>
+          
+          {menuItems.length === 0 ? (
+            <p style={{ color: '#94a3b8', textAlign: 'center', margin: '20px 0' }}>لا توجد وجبات مضافة حالياً.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '15px' }}>
+              {menuItems.map((item) => (
+                <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#0f172a', padding: '12px 15px', borderRadius: '8px', border: '1px solid #334155' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    {item.image_url ? (
+                      <img src={item.image_url} alt="" style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '6px' }} />
+                    ) : (
+                      <div style={{ width: '50px', height: '50px', background: '#334155', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: '#94a3b8' }}>لا توجد</div>
+                    )}
+                    <div>
+                      <h4 style={{ margin: '0 0 5px 0', fontSize: '16px' }}>{item.name}</h4>
+                      <span style={{ color: '#fbbf24', fontWeight: 'bold', fontSize: '14px' }}>{Number(item.price).toLocaleString()} د.ع</span>
+                    </div>
+                  </div>
+                  
+                  <button 
+                    onClick={() => handleDeleteItem(item.id)}
+                    style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
+                  >
+                    حذف 🗑️
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
       </div>
