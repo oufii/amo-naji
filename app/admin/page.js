@@ -11,12 +11,11 @@ export default function AdminPage() {
     delivery_fee: 500,
     is_delivery_available: true 
   });
-  const [newItem, setNewItem] = useState({ name: '', price: '', image: '', is_special: false });
+  const [newItem, setNewItem] = useState({ name: '', price: '', image_url: '', is_special: false });
   const [editingId, setEditingId] = useState(null);
   const [imageFile, setImageFile] = useState(null);
   const [uploading, setUploading] = useState(false);
 
-  // التحقق من حالة تسجيل الدخول المخزنة مسبقاً
   useEffect(() => {
     const authStatus = localStorage.getItem('admin_auth');
     if (authStatus === 'true') {
@@ -82,7 +81,7 @@ export default function AdminPage() {
   };
 
   const handleImageUpload = async () => {
-    if (!imageFile) return newItem.image;
+    if (!imageFile) return newItem.image_url;
     try {
       setUploading(true);
       const fileExt = imageFile.name.split('.').pop();
@@ -105,17 +104,16 @@ export default function AdminPage() {
 
   const handleSubmitItem = async (e) => {
     e.preventDefault();
-    let imageUrl = newItem.image;
+    let imageUrl = newItem.image_url;
     if (imageFile) {
       imageUrl = await handleImageUpload();
     }
 
-    // إرسال البيانات بشكل متوافق تماماً مع الجدول لمنع أي خطأ
     const itemData = {
       name: newItem.name,
       price: Number(newItem.price),
-      image: imageUrl,
-      is_special: newItem.is_special || false
+      image_url: imageUrl,
+      is_special: Boolean(newItem.is_special)
     };
 
     if (editingId) {
@@ -125,7 +123,7 @@ export default function AdminPage() {
         .eq('id', editingId);
       if (error) {
         console.error(error);
-        alert('خطأ في التعديل: تأكد من إضافة عمود is_special في قاعدة البيانات أو تطابق الحقول');
+        alert('خطأ في التعديل');
       } else {
         setEditingId(null);
         alert('تم تعديل الوجبة بنجاح ✓');
@@ -136,20 +134,13 @@ export default function AdminPage() {
         .insert([itemData]);
       if (error) {
         console.error(error);
-        // محاولة بديلة في حال كان حقل is_special غير موجود بقاعدة البيانات لتفادي توقف النظام
-        const fallbackData = { name: newItem.name, price: Number(newItem.price), image: imageUrl };
-        const { error: fallbackError } = await supabase.from('menu_items').insert([fallbackData]);
-        if (fallbackError) {
-          alert('خطأ في الإضافة. يرجى مراجعة قاعدة البيانات.');
-        } else {
-          alert('تم إضافة الوجبة بنجاح (ملاحظة: تفقد جدول قاعدة البيانات لتفعيل حقل العروض المميزة is_special) ✓');
-        }
+        alert('خطأ في الإضافة: تأكد من حفظ التعديلات في Supabase');
       } else {
         alert('تم إضافة الوجبة بنجاح ✓');
       }
     }
 
-    setNewItem({ name: '', price: '', image: '', is_special: false });
+    setNewItem({ name: '', price: '', image_url: '', is_special: false });
     setImageFile(null);
     fetchData();
   };
@@ -159,7 +150,7 @@ export default function AdminPage() {
     setNewItem({ 
       name: item.name || item.title || '', 
       price: item.price, 
-      image: item.image || item.image_url || '',
+      image_url: item.image_url || item.image || '',
       is_special: item.is_special ?? item.is_offer ?? false 
     });
     setImageFile(null);
@@ -173,7 +164,6 @@ export default function AdminPage() {
     else fetchData();
   };
 
-  // شاشة إدخال الرمز السري للحماية
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-slate-950 text-white font-sans dir-rtl flex items-center justify-center p-6">
@@ -209,12 +199,10 @@ export default function AdminPage() {
     );
   }
 
-  // الواجهة الأصلية للوحة التحكم بعد تسجيل الدخول الصحيح
   return (
     <div className="min-h-screen bg-slate-950 text-white font-sans dir-rtl p-6">
       <div className="max-w-4xl mx-auto space-y-8">
         
-        {/* رأس الصفحة مع زر تسجيل الخروج */}
         <div className="flex justify-between items-center border-b border-slate-800 pb-4">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-black text-amber-500">لوحة التحكم بالمطعم ⚙️</h1>
@@ -232,7 +220,6 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* صندوق عرض رابط إدارة الطلبات المنفصل */}
         <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-center gap-3">
           <div className="text-xs text-slate-300">
             📦 <strong className="text-amber-400">رابط إدارة الطلبات والديلفري الخاص بك:</strong> انسخه واحتفظ به في مكان خاص.
@@ -249,7 +236,6 @@ export default function AdminPage() {
           </button>
         </div>
 
-        {/* إعدادات التوصيل */}
         <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
           <h2 className="text-lg font-bold text-amber-400 flex items-center gap-2">🛵 إعدادات التوصيل</h2>
           <form onSubmit={handleSaveSettings} className="space-y-4">
@@ -277,7 +263,6 @@ export default function AdminPage() {
           </form>
         </section>
 
-        {/* إضافة أو تعديل وجبة */}
         <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
           <h2 className="text-lg font-bold text-amber-400 flex items-center gap-2">
             {editingId ? '✏️ تعديل الوجبة الحالية' : '➕ إضافة وجبة أو عرض جديد'}
@@ -318,7 +303,6 @@ export default function AdminPage() {
               />
             </div>
 
-            {/* خيار العروض المميزة */}
             <div className="flex items-center gap-3 bg-slate-950 p-3.5 rounded-xl border border-slate-800">
               <input 
                 type="checkbox" 
@@ -343,7 +327,7 @@ export default function AdminPage() {
               {editingId && (
                 <button 
                   type="button" 
-                  onClick={() => { setEditingId(null); setNewItem({ name: '', price: '', image: '', is_special: false }); }}
+                  onClick={() => { setEditingId(null); setNewItem({ name: '', price: '', image_url: '', is_special: false }); }}
                   className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-5 py-3 rounded-xl text-sm transition"
                 >
                   إلغاء
@@ -353,20 +337,19 @@ export default function AdminPage() {
           </form>
         </section>
 
-        {/* قائمة الوجبات الحالية */}
         <section className="space-y-4">
           <h2 className="text-lg font-bold text-slate-200">📋 الوجبات الحالية في القائمة ({menu.length})</h2>
           <div className="space-y-3">
             {menu.map((item) => (
               <div key={item.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex justify-between items-center gap-4">
                 <div className="flex items-center gap-4">
-                  {(item.image || item.image_url) && (
-                    <img src={item.image || item.image_url} alt="" className="w-16 h-16 object-cover rounded-xl border border-slate-800" />
+                  {(item.image_url || item.image) && (
+                    <img src={item.image_url || item.image} alt="" className="w-16 h-16 object-cover rounded-xl border border-slate-800" />
                   )}
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="font-bold text-base">{item.name || item.title}</h3>
-                      {(item.is_special || item.is_offer) && (
+                      {item.is_special && (
                         <span className="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[10px] px-2 py-0.5 rounded-full font-bold">
                           عرض مميز 🔥
                         </span>
