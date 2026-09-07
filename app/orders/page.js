@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '../../lib/supabase';
+import Link from 'next/link';
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
@@ -8,138 +9,176 @@ export default function OrdersPage() {
 
   useEffect(() => {
     fetchOrders();
-    // تحديث تلقائي كل 10 ثوانٍ حتى تنزل الطلبات الجديدة فوراً بدون ما تحدث الصفحة
+    // تحديث تلقائي كل 10 ثوانٍ لوكو طلبات جديدة
     const interval = setInterval(fetchOrders, 10000);
     return () => clearInterval(interval);
   }, []);
 
-  const fetchOrders = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .order('id', { ascending: false });
-      if (data) {
-        setOrders(data);
-      }
-    } catch (e) {
-      console.log('Error fetching orders:', e);
-    } finally {
-      setLoading(false);
-    }
-  };
+  async function fetchOrders() {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .order('id', { ascending: false });
 
+    if (data) {
+      setOrders(data);
+    }
+    setLoading(false);
+  }
+
+  // دالة حذف أو إلغاء الطلب
+  async function deleteOrder(id) {
+    if (!confirm('هل أنت متأكد من حذف أو إلغاء هذا الطلب؟')) return;
+
+    const { error } = await supabase
+      .from('orders')
+      .delete()
+      .eq('id', id);
+
+    if (!error) {
+      setOrders(orders.filter(order => order.id !== id));
+    } else {
+      alert('حدث خطأ أثناء الحذف');
+    }
+  }
+
+  // دالة طباعة الفاتورة بشكل احترافي ومرتب
   const handlePrint = (order) => {
-    const printWindow = window.open('', '_blank', 'width=400,height=600');
+    const printWindow = window.open('', '_blank');
     
-    let itemsHtml = '';
-    if (Array.isArray(order.items)) {
-      itemsHtml = order.items.map((item, i) => `
-        <div style="display: flex; justify-content: space-between; margin-bottom: 5px; border-bottom: 1px dashed #ddd; padding-bottom: 4px;">
-          <span>${i + 1}. ${item.name} × ${item.quantity}</span>
-          <span>${(item.price * item.quantity).toLocaleString()} د.ع</span>
-        </div>
-      `).join('');
-    }
+    const itemsList = Array.isArray(order.items) 
+      ? order.items.map(i => `<tr><td>${i.name}</td><td style="text-align:center;">${i.quantity}</td><td style="text-align:left;">${(Number(i.price) * i.quantity).toLocaleString()} د.ع</td></tr>`).join('')
+      : '<tr><td colspan="3">تفاصيل الوجبات غير متوفرة</td></tr>';
 
-    printWindow.document.write(`
+    const printContent = `
       <html dir="rtl">
         <head>
-          <title>فاتورة طلب رقم #${order.id}</title>
+          <title>فاتورة طلب #${order.id}</title>
           <style>
-            body { font-family: 'Tahoma', sans-serif; padding: 15px; width: 300px; color: #000; }
-            h2 { text-align: center; margin-bottom: 5px; }
-            .info { margin-bottom: 15px; font-size: 14px; }
-            .totals { margin-top: 15px; border-top: 2px solid #000; padding-top: 5px; font-weight: bold; }
+            body { font-family: 'Cairo', Tahoma, sans-serif; padding: 20px; color: #000; width: 300px; margin: 0 auto; }
+            h2 { text-align: center; margin-bottom: 5px; font-size: 20px; }
+            .sub-title { text-align: center; font-size: 12px; margin-bottom: 15px; color: #555; }
+            .info { margin-bottom: 10px; font-size: 13px; line-height: 1.6; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+            th, td { border-bottom: 1px dashed #ccc; padding: 6px 2px; }
+            th { text-align: right; }
+            .totals { margin-top: 15px; font-size: 13px; border-top: 2px solid #000; padding-top: 5px; }
+            .totals div { display: flex; justify-content: space-between; margin-bottom: 4px; }
+            .grand-total { font-weight: bold; font-size: 15px; border-top: 1px solid #000; padding-top: 4px; }
           </style>
         </head>
         <body>
           <h2>مطعم عمو ناجي 🍔</h2>
-          <p style="text-align: center; font-size: 12px; margin-top: 0;">طلب رقم: #${order.id}</p>
+          <div class="sub-title">فاتورة طلب زبون</div>
+          
           <div class="info">
-            <p><strong>الاسم:</strong> ${order.customer_name}</p>
-            <p><strong>الهاتف:</strong> ${order.customer_phone}</p>
-            <p><strong>العنوان:</strong> ${order.customer_address}</p>
-            ${order.location_url ? `<p><strong>الموقع:</strong> <a href="${order.location_url}" target="_blank">رابط الخريطة</a></p>` : ''}
+            <div><strong>رقم الطلب:</strong> #${order.id}</div>
+            <div><strong>اسم الزبون:</strong> ${order.customer_name || 'غير محدد'}</div>
+            <div><strong>الهاتف:</strong> ${order.customer_phone || 'غير محدد'}</div>
+            <div><strong>العنوان:</strong> ${order.customer_address || 'غير محدد'}</div>
+            <div><strong>الوقت:</strong> ${new Date(order.created_at).toLocaleString('ar-IQ')}</div>
           </div>
-          <hr/>
-          <div style="font-size: 14px;">
-            <strong>الوجبات:</strong>
-            <div style="margin-top: 5px;">${itemsHtml}</div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>الوجبة</th>
+                <th style="text-align:center;">الكمية</th>
+                <th style="text-align:left;">السعر</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsList}
+            </tbody>
+          </table>
+
+          <div class="totals">
+            <div><span>مجموع الوجبات:</span> <span>${(order.food_total || 0).toLocaleString()} د.ع</span></div>
+            <div><span>رسوم التوصيل:</span> <span>${(order.delivery_fee || 0).toLocaleString()} د.ع</span></div>
+            <div class="grand-total"><span>المجموع الكلي:</span> <span>${(order.grand_total || 0).toLocaleString()} د.ع</span></div>
           </div>
-          <div class="totals" style="font-size: 14px;">
-            <div>مجموع الوجبات: ${Number(order.food_total).toLocaleString()} د.ع</div>
-            <div>سعر التوصيل: ${Number(order.delivery_fee).toLocaleString()} د.ع</div>
-            <div style="font-size: 16px; margin-top: 5px;">المجموع الكلي: ${Number(order.grand_total).toLocaleString()} د.ع</div>
-          </div>
+
           <script>
             window.onload = function() { window.print(); window.close(); }
           </script>
         </body>
       </html>
-    `);
+    `;
+
+    printWindow.document.write(printContent);
     printWindow.document.close();
   };
 
-  if (loading) return <div style={{ background: '#0f172a', color: '#fff', height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>جاري التحميل...</div>;
-
   return (
-    <div style={{ minHeight: '100vh', background: '#0f172a', color: '#fff', padding: '20px', fontFamily: 'sans-serif', direction: 'rtl' }}>
-      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#1e293b', padding: '15px 20px', borderRadius: '12px', marginBottom: '20px' }}>
-          <h1 style={{ fontSize: '20px', margin: 0 }}>📦 لوحة طلبات الزبائن ({orders.length})</h1>
-          <a href="/admin" style={{ background: '#3b82f6', color: '#fff', padding: '8px 16px', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold', fontSize: '14px' }}>العودة للإدارة 🛠️</a>
-        </div>
+    <div className="min-h-screen bg-slate-950 text-white p-6 dir-rtl font-sans">
+      <div className="max-w-4xl mx-auto flex justify-between items-center mb-8 border-b border-slate-800 pb-4">
+        <h1 className="text-2xl font-black text-amber-500">📦 لوحة طلبات الزبائن ({orders.length})</h1>
+        <Link href="/" className="bg-slate-900 border border-slate-700 hover:border-amber-500 px-4 py-2 rounded-xl text-sm font-semibold transition">
+          🛠️ العودة للإدارة
+        </Link>
+      </div>
 
-        {orders.length === 0 ? (
-          <p style={{ textAlign: 'center', color: '#94a3b8', marginTop: '50px' }}>لا توجد طلبات جديدة حالياً.</p>
+      <div className="max-w-4xl mx-auto space-y-6">
+        {loading ? (
+          <p className="text-center text-slate-500 py-10">جاري تحميل الطلبات...</p>
+        ) : orders.length === 0 ? (
+          <p className="text-center text-slate-500 py-10">لا توجد طلبات جديدة حالياً.</p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            {orders.map((order) => (
-              <div key={order.id} style={{ background: '#1e293b', padding: '20px', borderRadius: '12px', border: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '15px' }}>
-                <div style={{ flex: 1, minWidth: '250px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <h3 style={{ margin: 0, color: '#38bdf8' }}>طلب #{order.id}</h3>
-                    <span style={{ fontSize: '12px', color: '#94a3b8' }}>{new Date(order.created_at).toLocaleString('ar-IQ')}</span>
-                  </div>
-                  <p style={{ margin: '4px 0' }}><strong>👤 الاسم:</strong> {order.customer_name}</p>
-                  <p style={{ margin: '4px 0' }}><strong>📞 الهاتف:</strong> <a href={`tel:${order.customer_phone}`} style={{ color: '#60a5fa' }}>{order.customer_phone}</a></p>
-                  <p style={{ margin: '4px 0' }}><strong>📍 العنوان:</strong> {order.customer_address}</p>
-                  {order.location_url && (
-                    <p style={{ margin: '4px 0' }}>
-                      <a href={order.location_url} target="_blank" style={{ color: '#34d399', textDecoration: 'underline' }}>📍 فتح موقع الزبون على الخريطة</a>
-                    </p>
-                  )}
-
-                  <div style={{ marginTop: '10px', background: '#0f172a', padding: '10px', borderRadius: '8px' }}>
-                    <strong style={{ fontSize: '13px', color: '#fbbf24' }}>الوجبات المطلوبة:</strong>
-                    <ul style={{ margin: '5px 0 0 0', paddingRight: '20px', fontSize: '13px' }}>
-                      {Array.isArray(order.items) && order.items.map((item, idx) => (
-                        <li key={idx}>
-                          {item.name} × {item.quantity} ({(item.price * item.quantity).toLocaleString()} د.ع)
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+          orders.map((order) => (
+            <div key={order.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col md:flex-row justify-between gap-6">
+              
+              <div className="space-y-2 flex-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-amber-400 font-bold text-lg">طلب #{order.id}</span>
+                  <span className="text-xs text-slate-500">{new Date(order.created_at).toLocaleString('ar-IQ')}</span>
+                </div>
+                
+                <div className="text-sm space-y-1 text-slate-300">
+                  <p>👤 <strong>الاسم:</strong> {order.customer_name}</p>
+                  <p>📞 <strong>الهاتف:</strong> <a href={`tel:${order.customer_phone}`} className="text-amber-400 underline">{order.customer_phone}</a></p>
+                  <p>📍 <strong>العنوان:</strong> {order.customer_address}</p>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'space-between', height: '100%', minWidth: '180px' }}>
-                  <div style={{ textAlign: 'left', background: '#0f172a', padding: '12px', borderRadius: '8px', width: '100%', marginBottom: '10px' }}>
-                    <div style={{ fontSize: '12px', color: '#94a3b8' }}>المجموع: {Number(order.food_total).toLocaleString()} د.ع</div>
-                    <div style={{ fontSize: '12px', color: '#94a3,b8' }}>التوصيل: {Number(order.delivery_fee).toLocaleString()} د.ع</div>
-                    <div style={{ fontSize: '16px', color: '#34d399', fontWeight: 'bold', marginTop: '4px' }}>الكلي: {Number(order.grand_total).toLocaleString()} د.ع</div>
+                {order.items && Array.isArray(order.items) && (
+                  <div className="bg-slate-950 p-3 rounded-xl mt-3">
+                    <p className="text-xs font-bold text-amber-500 mb-2">الوجبات المطلوبة:</p>
+                    <div className="space-y-1 text-xs">
+                      {order.items.map((item, idx) => (
+                        <div key={idx} className="flex justify-between text-slate-300">
+                          <span>{item.name} × {item.quantity}</span>
+                          <span className="text-amber-400">{(Number(item.price) * item.quantity).toLocaleString()} د.ع</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
+                )}
+              </div>
 
+              <div className="flex flex-col justify-between items-end border-t md:border-t-0 md:border-r border-slate-800 pt-4 md:pt-0 md:pr-6 min-w-[200px]">
+                <div className="bg-slate-950 p-3 rounded-xl w-full text-xs space-y-1.5 mb-4">
+                  <div className="flex justify-between text-slate-400"><span>المجموع:</span><span>{(order.food_total || 0).toLocaleString()} د.ع</span></div>
+                  <div className="flex justify-between text-slate-400"><span>التوصيل:</span><span>{(order.delivery_fee || 0).toLocaleString()} د.ع</span></div>
+                  <div className="flex justify-between text-emerald-400 font-bold text-sm border-t border-slate-800 pt-1"><span>الكلي:</span><span>{(order.grand_total || 0).toLocaleString()} د.ع</span></div>
+                </div>
+
+                <div className="flex gap-2 w-full">
                   <button 
-                    onClick={() => handlePrint(order)}
-                    style={{ background: '#f59e0b', color: '#0f172a', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                    onClick={() => handlePrint(order)} 
+                    className="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2 rounded-xl text-xs transition text-center"
                   >
                     🖨️ طباعة الفاتورة
                   </button>
+                  <button 
+                    onClick={() => deleteOrder(order.id)} 
+                    className="bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/30 font-bold px-3 py-2 rounded-xl text-xs transition"
+                  >
+                    🗑️ حذف
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
+
+            </div>
+          ))
         )}
       </div>
     </div>
