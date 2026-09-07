@@ -4,9 +4,10 @@ import { supabase } from '../../lib/supabase';
 import Link from 'next/link';
 
 export default function AdminPage() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
   const [menu, setMenu] = useState([]);
   const [deliverySettings, setDeliverySettings] = useState({ 
-    whatsapp_number: '9647722447722', 
     delivery_fee: 500,
     is_delivery_available: true 
   });
@@ -15,9 +16,36 @@ export default function AdminPage() {
   const [imageFile, setImageFile] = useState(null);
   const [uploading, setUploading] = useState(false);
 
+  // التحقق من حالة تسجيل الدخول المخزنة مسبقاً
   useEffect(() => {
-    fetchData();
+    const authStatus = localStorage.getItem('admin_auth');
+    if (authStatus === 'true') {
+      setIsAuthenticated(true);
+    }
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchData();
+    }
+  }, [isAuthenticated]);
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (passwordInput === '9090') {
+      setIsAuthenticated(true);
+      localStorage.setItem('admin_auth', 'true');
+    } else {
+      alert('الرمز السري غير صحيح! ❌');
+      setPasswordInput('');
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('admin_auth');
+    setIsAuthenticated(false);
+    setPasswordInput('');
+  };
 
   async function fetchData() {
     const { data: menuData } = await supabase
@@ -33,7 +61,6 @@ export default function AdminPage() {
       .single();
     if (setData) {
       setDeliverySettings({
-        whatsapp_number: setData.whatsapp_number || '9647722447722',
         delivery_fee: setData.delivery_fee ?? 500,
         is_delivery_available: setData.is_delivery_available ?? true
       });
@@ -83,6 +110,7 @@ export default function AdminPage() {
       imageUrl = await handleImageUpload();
     }
 
+    // إرسال البيانات بشكل متوافق تماماً مع الجدول لمنع أي خطأ
     const itemData = {
       name: newItem.name,
       price: Number(newItem.price),
@@ -96,8 +124,8 @@ export default function AdminPage() {
         .update(itemData)
         .eq('id', editingId);
       if (error) {
-        console.log(error);
-        alert('خطأ في التعديل');
+        console.error(error);
+        alert('خطأ في التعديل: تأكد من إضافة عمود is_special في قاعدة البيانات أو تطابق الحقول');
       } else {
         setEditingId(null);
         alert('تم تعديل الوجبة بنجاح ✓');
@@ -107,8 +135,15 @@ export default function AdminPage() {
         .from('menu_items')
         .insert([itemData]);
       if (error) {
-        console.log(error);
-        alert('خطأ في الإضافة');
+        console.error(error);
+        // محاولة بديلة في حال كان حقل is_special غير موجود بقاعدة البيانات لتفادي توقف النظام
+        const fallbackData = { name: newItem.name, price: Number(newItem.price), image: imageUrl };
+        const { error: fallbackError } = await supabase.from('menu_items').insert([fallbackData]);
+        if (fallbackError) {
+          alert('خطأ في الإضافة. يرجى مراجعة قاعدة البيانات.');
+        } else {
+          alert('تم إضافة الوجبة بنجاح (ملاحظة: تفقد جدول قاعدة البيانات لتفعيل حقل العروض المميزة is_special) ✓');
+        }
       } else {
         alert('تم إضافة الوجبة بنجاح ✓');
       }
@@ -138,16 +173,80 @@ export default function AdminPage() {
     else fetchData();
   };
 
+  // شاشة إدخال الرمز السري للحماية
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white font-sans dir-rtl flex items-center justify-center p-6">
+        <div className="bg-slate-900 border border-slate-800 p-8 rounded-2xl max-w-md w-full space-y-6 shadow-2xl">
+          <div className="text-center space-y-2">
+            <h1 className="text-2xl font-black text-amber-500">🔒 لوحة التحكم المحمية</h1>
+            <p className="text-xs text-slate-400">الرجاء إدخال الرمز السري للمتابعة</p>
+          </div>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <input 
+              type="password"
+              placeholder="أدخل الرمز السري (مثال: 9090)"
+              value={passwordInput}
+              onChange={(e) => setPasswordInput(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 p-3.5 rounded-xl text-center text-lg tracking-widest text-white focus:border-amber-500 outline-none"
+              autoFocus
+              required
+            />
+            <button 
+              type="submit"
+              className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3.5 rounded-xl transition text-sm shadow-lg shadow-amber-500/10"
+            >
+              دخول للوحة التحكم 🚀
+            </button>
+          </form>
+          <div className="text-center">
+            <Link href="/" className="text-xs text-slate-500 hover:text-amber-400 underline">
+              العودة للمتجر الرئيسي 🛍️
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // الواجهة الأصلية للوحة التحكم بعد تسجيل الدخول الصحيح
   return (
     <div className="min-h-screen bg-slate-950 text-white font-sans dir-rtl p-6">
       <div className="max-w-4xl mx-auto space-y-8">
         
-        {/* رأس الصفحة بدون زر الطلبات المزعج */}
+        {/* رأس الصفحة مع زر تسجيل الخروج */}
         <div className="flex justify-between items-center border-b border-slate-800 pb-4">
-          <h1 className="text-2xl font-black text-amber-500">لوحة التحكم بالمطعم ⚙️</h1>
-          <Link href="/" className="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-amber-400 font-bold px-4 py-2 rounded-xl text-xs transition">
-            العودة للمتجر 🛍️
-          </Link>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-black text-amber-500">لوحة التحكم بالمطعم ⚙️</h1>
+            <button 
+              onClick={handleLogout}
+              className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1"
+            >
+              🚪 تسجيل خروج
+            </button>
+          </div>
+          <div className="flex gap-2">
+            <Link href="/" className="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-amber-400 font-bold px-4 py-2 rounded-xl text-xs transition">
+              العودة للمتجر 🛍️
+            </Link>
+          </div>
+        </div>
+
+        {/* صندوق عرض رابط إدارة الطلبات المنفصل */}
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+          <div className="text-xs text-slate-300">
+            📦 <strong className="text-amber-400">رابط إدارة الطلبات والديلفري الخاص بك:</strong> انسخه واحتفظ به في مكان خاص.
+          </div>
+          <button 
+            onClick={() => {
+              const ordersUrl = window.location.origin + '/orders';
+              navigator.clipboard.writeText(ordersUrl);
+              alert('تم نسخ رابط إدارة الطلبات بنجاح! 📋');
+            }}
+            className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 font-bold px-4 py-2 rounded-xl text-xs transition whitespace-nowrap"
+          >
+            📋 نسخ رابط صفحة الطلبات
+          </button>
         </div>
 
         {/* إعدادات التوصيل */}
