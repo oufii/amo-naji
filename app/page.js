@@ -186,35 +186,33 @@ export default function Home() {
         </button>
       </header>
 
-      {/* شاشة تتبع الطلب الحية للزبون */}
+      {/* بوكس حالة الطلب البسيط والواضح للزبون */}
       {myLatestOrder && (
         <div className="max-w-6xl mx-auto px-6 mt-6">
           <div className="bg-slate-900 border border-amber-500/40 rounded-2xl p-5 flex flex-col md:flex-row justify-between items-center gap-4 shadow-lg shadow-amber-500/5">
-            <div className="space-y-1.5 text-center md:text-right">
+            <div className="space-y-1 text-center md:text-right">
               <div className="flex items-center justify-center md:justify-start gap-3">
                 <span className="text-amber-400 font-black text-lg">طلب رقم #{myLatestOrder.id}</span>
                 <span className={`text-xs px-3 py-1 rounded-full font-bold ${
-                  myLatestOrder.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-                  myLatestOrder.status === 'on_the_way' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 
-                  'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                  myLatestOrder.status === 'completed' 
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                    : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                 }`}>
-                  {myLatestOrder.status === 'completed' ? '✅ تم تسليم الطلب وأرشفته بنجاح' :
-                   myLatestOrder.status === 'on_the_way' ? '🛵 المندوب في الطريق إليك' : 
-                   '👨‍🍳 الطلب قيد التحضير في المطعم'}
+                  {myLatestOrder.status === 'completed' ? '✅ تم تسليم الطلب بنجاح' : '👨‍🍳 الطلب قيد التحضير الآن'}
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                {myLatestOrder.status === 'completed' ? 'شكراً لطلبك من مطعم عمو ناجي، نتمنى لك وجبة شهية وعليكم بالعافية!' : 
-                 myLatestOrder.status === 'on_the_way' ? 'طلبك طلع وي المندوب وقريب يوصل لعنوانك.' :
-                 'تم استلام طلبك بنجاح وجاري تجهيزه من قبل الشيف.'}
+                {myLatestOrder.status === 'completed' 
+                  ? 'شكراً لاختيارك مطعم عمو ناجي، نتمنى لك وجبة شهية وعليكم بالعافية!' 
+                  : 'جاري العمل على تجهيز طلبك وإرساله مع المندوب.'}
               </p>
             </div>
             
             <button 
               onClick={() => fetchOrderStatus(myLatestOrder.id)}
-              className="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2"
+              className="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 font-bold px-3 py-2 rounded-xl text-xs transition"
             >
-              <span>🔄 تحديث الحالة</span>
+              🔄 تحديث الحالة
             </button>
           </div>
         </div>
@@ -323,7 +321,7 @@ export default function Home() {
 
             <form onSubmit={handleSendWhatsApp} className="space-y-3">
               <input type="text" placeholder="الاسم" required value={customerInfo.name} onChange={e => setCustomerInfo({...customerInfo, name: e.target.value})} className="w-full bg-slate-950 p-3 rounded-xl border border-slate-800 text-sm text-white" />
-              <input type="tel" placeholder="رقم الهاتف" required value={customerInfo.phone} onChange=_{e => setCustomerInfo({...customerInfo, phone: e.target.value})} className="w-full bg-slate-950 p-3 rounded-xl border border-slate-800 text-sm text-white" />
+              <input type="tel" placeholder="رقم الهاتف" required value={customerInfo.phone} onChange={e => setCustomerInfo({...customerInfo, phone: e.target.value})} className="w-full bg-slate-950 p-3 rounded-xl border border-slate-800 text-sm text-white" />
               <textarea placeholder="العنوان التفصيلي" required value={customerInfo.address} onChange={e => setCustomerInfo({...customerInfo, address: e.target.value})} className="w-full bg-slate-950 p-3 rounded-xl border border-slate-800 text-sm h-20 text-white"></textarea>
 
               <button 
