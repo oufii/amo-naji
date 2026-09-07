@@ -109,10 +109,12 @@ export default function AdminPage() {
       imageUrl = await handleImageUpload();
     }
 
+    // إرسال البيانات بجميع الاحتمالات لتجنب أي خطأ في أسماء الأعمدة بقاعدة البيانات
     const itemData = {
       name: newItem.name,
       price: Number(newItem.price),
       image_url: imageUrl,
+      image: imageUrl,
       is_special: Boolean(newItem.is_special)
     };
 
@@ -123,7 +125,7 @@ export default function AdminPage() {
         .eq('id', editingId);
       if (error) {
         console.error(error);
-        alert('خطأ في التعديل');
+        alert('خطأ في التعديل: ' + error.message);
       } else {
         setEditingId(null);
         alert('تم تعديل الوجبة بنجاح ✓');
@@ -134,7 +136,7 @@ export default function AdminPage() {
         .insert([itemData]);
       if (error) {
         console.error(error);
-        alert('خطأ في الإضافة: تأكد من حفظ التعديلات في Supabase');
+        alert('خطأ في الإضافة: ' + error.message);
       } else {
         alert('تم إضافة الوجبة بنجاح ✓');
       }
@@ -154,7 +156,7 @@ export default function AdminPage() {
       is_special: item.is_special ?? item.is_offer ?? false 
     });
     setImageFile(null);
-    window.scrollTo({ top: 400, behavior: 'smooth' });
+    window.scrollTo({ top: 300, behavior: 'smooth' });
   };
 
   const handleDelete = async (id) => {
@@ -218,22 +220,6 @@ export default function AdminPage() {
               العودة للمتجر 🛍️
             </Link>
           </div>
-        </div>
-
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-center gap-3">
-          <div className="text-xs text-slate-300">
-            📦 <strong className="text-amber-400">رابط إدارة الطلبات والديلفري الخاص بك:</strong> انسخه واحتفظ به في مكان خاص.
-          </div>
-          <button 
-            onClick={() => {
-              const ordersUrl = window.location.origin + '/orders';
-              navigator.clipboard.writeText(ordersUrl);
-              alert('تم نسخ رابط إدارة الطلبات بنجاح! 📋');
-            }}
-            className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 font-bold px-4 py-2 rounded-xl text-xs transition whitespace-nowrap"
-          >
-            📋 نسخ رابط صفحة الطلبات
-          </button>
         </div>
 
         <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
