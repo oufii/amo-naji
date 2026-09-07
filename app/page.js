@@ -22,7 +22,7 @@ export default function Home() {
 
   async function fetchData() {
     const { data: menuData } = await supabase
-      .from('products')
+      .from('menu_items') // الجدول الصحيح المطابق للوحة الإدارة
       .select('*')
       .order('id', { ascending: false });
     
