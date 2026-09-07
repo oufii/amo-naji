@@ -45,11 +45,10 @@ export default function OrdersPage() {
     else fetchOrders();
   };
 
-  // دالة طباعة الوصل الحراري (تعمل مع كل الطلبات بدون استثناء)
+  // دالة طباعة الوصل الحراري (جكن عمو ناجي)
   const handlePrintReceipt = (order) => {
     const printWindow = window.open('', '_blank');
     
-    // تجهيز قائمة الوجبات بشكل آمن
     let itemsList = '';
     try {
       const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
@@ -186,7 +185,7 @@ export default function OrdersPage() {
                     <p><span className="text-slate-400">📞 الهاتف:</span> <a href={`tel:${order.phone}`} className="text-amber-400 underline font-bold">{order.phone || 'غير محدد'}</a></p>
                     <p><span className="text-slate-400">📍 العنوان:</span> {order.address || 'غير محدد'}</p>
                     {order.location_url && (
-                      <a href={order.location_url} target="_blank" rel="noopener noreferrer" className="inline-block mt-2 text-xs bg-blue-600/20 text-blue-400 border border-blue-500/30 px-3 py.1.5 rounded-lg font-bold">
+                      <a href={order.location_url} target="_blank" rel="noopener noreferrer" className="inline-block mt-2 text-xs bg-blue-600/20 text-blue-400 border border-blue-500/30 px-3 py-1.5 rounded-lg font-bold">
                         🗺️ عرض الموقع على الخريطة (GPS)
                       </a>
                     )}
@@ -196,15 +195,15 @@ export default function OrdersPage() {
                     <div className="space-y-1">
                       <div className="flex justify-between text-xs text-slate-400">
                         <span>مجموع الوجبات:</span>
-                        <span>{Number(order.subtotal || (order.total_price ? order.total_price - 500 : 0)).toLocaleString()} د.ع</span>
+                        <span>{Number(subtotal).toLocaleString()} د.ع</span>
                       </div>
                       <div className="flex justify-between text-xs text-slate-400">
                         <span>سعر التوصيل:</span>
-                        <span>{Number(order.delivery_fee || 500).toLocaleString()} د.ع</span>
+                        <span>{Number(deliveryFee).toLocaleString()} د.ع</span>
                       </div>
                       <div className="flex justify-between text-sm font-bold text-amber-400 border-t border-slate-800 pt-1 mt-1">
                         <span>المبلغ الكلي:</span>
-                        <span>{Number(order.total_price || 0).toLocaleString()} د.ع</span>
+                        <span>{Number(totalPrice).toLocaleString()} د.ع</span>
                       </div>
                     </div>
                   </div>
@@ -226,32 +225,32 @@ export default function OrdersPage() {
                           ));
                         }
                       } catch(e) {}
-                      return <p className="text-xs text-slate-400">تفاصيل الوجبات غير متوفرة أو طلب قديم</p>;
+                      return <p className="text-xs text-slate-400">تفاصيل الوجبات غير متوفرة أو طلب عام</p>;
                     })()}
                   </div>
                 </div>
 
-                {/* أزرار الإجراءات (طباعة، تسليم، حذف) - زر الطباعة صار ظاهر لكل الطلبات بدون استثناء */}
-                <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+                {/* أزرار الإجراءات - زر الطباعة صار بارز وواضح ومفصول لوحدة */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-800">
                   <button 
                     onClick={() => handlePrintReceipt(order)}
-                    className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition flex items-center gap-1.5 shadow-lg shadow-blue-600/20"
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-black px-5 py-2.5 rounded-xl text-sm transition flex items-center gap-2 shadow-xl shadow-blue-600/30"
                   >
-                    🖨️ طباعة الوصل (جكن عمو ناجي)
+                    🖨️ طباعة وصل (جكن عمو ناجي)
                   </button>
 
                   <div className="flex items-center gap-2">
                     {!order.is_completed && (
                       <button 
                         onClick={() => handleCompleteOrder(order.id)}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition flex items-center gap-1"
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-1"
                       >
                         ✓ تسليم وأرشفة الطلب
                       </button>
                     )}
                     <button 
                       onClick={() => handleDeleteOrder(order.id)}
-                      className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3.5 py-2 rounded-xl text-xs font-bold transition"
+                      className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3.5 py-2.5 rounded-xl text-xs font-bold transition"
                     >
                       حذف
                     </button>
