@@ -11,7 +11,7 @@ export default function AdminPage() {
     delivery_fee: 500,
     is_delivery_available: true 
   });
-  const [newItem, setNewItem] = useState({ name: '', price: '', image_url: '', is_special: false });
+  const [newItem, setNewItem] = useState({ name: '', price: '', image_url: '' });
   const [editingId, setEditingId] = useState(null);
   const [imageFile, setImageFile] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -109,12 +109,10 @@ export default function AdminPage() {
       imageUrl = await handleImageUpload();
     }
 
-    // إرسال الأعمدة المتوافقة حصراً مع قاعدة بياناتك الحقيقية
     const itemData = {
       name: newItem.name,
       price: Number(newItem.price),
-      image_url: imageUrl,
-      is_special: Boolean(newItem.is_special)
+      image_url: imageUrl
     };
 
     if (editingId) {
@@ -141,7 +139,7 @@ export default function AdminPage() {
       }
     }
 
-    setNewItem({ name: '', price: '', image_url: '', is_special: false });
+    setNewItem({ name: '', price: '', image_url: '' });
     setImageFile(null);
     fetchData();
   };
@@ -151,8 +149,7 @@ export default function AdminPage() {
     setNewItem({ 
       name: item.name || item.title || '', 
       price: item.price, 
-      image_url: item.image_url || item.image || '',
-      is_special: item.is_special ?? item.is_offer ?? false 
+      image_url: item.image_url || item.image || ''
     });
     setImageFile(null);
     window.scrollTo({ top: 300, behavior: 'smooth' });
@@ -250,15 +247,15 @@ export default function AdminPage() {
 
         <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
           <h2 className="text-lg font-bold text-amber-400 flex items-center gap-2">
-            {editingId ? '✏️ تعديل الوجبة الحالية' : '➕ إضافة وجبة أو عرض جديد'}
+            {editingId ? '✏️ تعديل الوجبة الحالية' : '➕ إضافة وجبة جديدة'}
           </h2>
           <form onSubmit={handleSubmitItem} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-slate-400 mb-1">اسم الوجبة / العرض</label>
+                <label className="block text-xs text-slate-400 mb-1">اسم الوجبة</label>
                 <input 
                   type="text" 
-                  placeholder="مثال: عرض عائلي دبل برجر" 
+                  placeholder="مثال: صاج دجاج" 
                   required
                   value={newItem.name}
                   onChange={(e) => setNewItem({...newItem, name: e.target.value})}
@@ -288,19 +285,6 @@ export default function AdminPage() {
               />
             </div>
 
-            <div className="flex items-center gap-3 bg-slate-950 p-3.5 rounded-xl border border-slate-800">
-              <input 
-                type="checkbox" 
-                id="is_special"
-                checked={newItem.is_special || false}
-                onChange={(e) => setNewItem({ ...newItem, is_special: e.target.checked })}
-                className="w-5 h-5 accent-amber-500 rounded cursor-pointer"
-              />
-              <label htmlFor="is_special" className="text-sm font-bold text-amber-400 cursor-pointer select-none">
-                🔥 جعل هذا المنتج ضمن قسم العروض المميزة (يظهر فوق في الواجهة)
-              </label>
-            </div>
-
             <div className="flex gap-3 pt-2">
               <button 
                 type="submit" 
@@ -312,7 +296,7 @@ export default function AdminPage() {
               {editingId && (
                 <button 
                   type="button" 
-                  onClick={() => { setEditingId(null); setNewItem({ name: '', price: '', image_url: '', is_special: false }); }}
+                  onClick={() => { setEditingId(null); setNewItem({ name: '', price: '', image_url: '' }); }}
                   className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-5 py-3 rounded-xl text-sm transition"
                 >
                   إلغاء
@@ -332,14 +316,7 @@ export default function AdminPage() {
                     <img src={item.image_url || item.image} alt="" className="w-16 h-16 object-cover rounded-xl border border-slate-800" />
                   )}
                   <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-base">{item.name || item.title}</h3>
-                      {item.is_special && (
-                        <span className="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[10px] px-2 py-0.5 rounded-full font-bold">
-                          عرض مميز 🔥
-                        </span>
-                      )}
-                    </div>
+                    <h3 className="font-bold text-base">{item.name || item.title}</h3>
                     <p className="text-amber-400 font-bold text-sm mt-1">{Number(item.price).toLocaleString()} د.ع</p>
                   </div>
                 </div>
