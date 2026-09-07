@@ -125,7 +125,7 @@ export default function Home() {
   const handleSendWhatsApp = async (e) => {
     e.preventDefault();
     if (cart.length === 0) return alert('السلة فارغة!');
-    if (!settings.is_delivery_available) return alert('عذراً، التوصيل غير متاح حالياً!');
+    if (!settings.is_delivery_available) return alert('عذراً، التوصيل غير mمتاح حالياً!');
 
     try {
       const { data } = await supabase.from('orders').insert([
@@ -168,7 +168,7 @@ export default function Home() {
       `💰 *المجموع الكلي:* ${grandTotal.toLocaleString()} د.ع`;
 
     const encodedMessage = encodeURIComponent(message);
-    window.open(`https://wa.me/${settings.whatsapp_number}?text=${encodedMessage}`, '_blank');
+    window.open(`https://api.whatsapp.com/send?phone=${settings.whatsapp_number}&text=${encodedMessage}`, '_blank');
     setIsCheckoutOpen(false);
   };
 
@@ -186,7 +186,6 @@ export default function Home() {
         </button>
       </header>
 
-      {/* بوكس حالة الطلب البسيط والواضح للزبون */}
       {myLatestOrder && (
         <div className="max-w-6xl mx-auto px-6 mt-6">
           <div className="bg-slate-900 border border-amber-500/40 rounded-2xl p-5 flex flex-col md:flex-row justify-between items-center gap-4 shadow-lg shadow-amber-500/5">
