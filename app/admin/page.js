@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 
 // ضع الرمز السرّي الخاص بك هنا
-const ADMIN_PIN = "1234"; // غيّره للرقم الذي تريده
+const ADMIN_PIN = "9090"; // غيّره للرقم الذي تريده
 
 export default function AdminPage() {
   const [pin, setPin] = useState('');
