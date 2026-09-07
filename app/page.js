@@ -22,7 +22,7 @@ export default function Home() {
 
   async function fetchData() {
     const { data: menuData } = await supabase
-      .from('menu_items') // الجدول الصحيح المطابق للوحة الإدارة
+      .from('menu_items')
       .select('*')
       .order('id', { ascending: false });
     
@@ -102,10 +102,28 @@ export default function Home() {
   const currentDeliveryFee = settings.is_delivery_available ? Number(settings.delivery_fee) : 0;
   const grandTotal = foodTotal + currentDeliveryFee;
 
-  const handleSendWhatsApp = (e) => {
+  const handleSendWhatsApp = async (e) => {
     e.preventDefault();
     if (cart.length === 0) return alert('السلة فارغة!');
     if (!settings.is_delivery_available) return alert('عذراً، التوصيل غير متاح حالياً!');
+
+    // حفظ الطلب في جدول orders بقاعدة البيانات لكي يظهر في لوحة الطلبات
+    try {
+      await supabase.from('orders').insert([
+        {
+          customer_name: customerInfo.name,
+          customer_phone: customerInfo.phone,
+          customer_address: customerInfo.address,
+          location_url: locationUrl || '',
+          items: cart,
+          food_total: foodTotal,
+          delivery_fee: currentDeliveryFee,
+          grand_total: grandTotal
+        }
+      ]);
+    } catch (err) {
+      console.log('Error saving order:', err);
+    }
 
     const itemsList = cart.map((item, idx) => `${idx + 1}. ${item.name} × ${item.quantity} = ${(Number(item.price) * item.quantity).toLocaleString()} د.ع`).join('\n');
 
@@ -124,7 +142,7 @@ export default function Home() {
       `💰 *المجموع الكلي:* ${grandTotal.toLocaleString()} د.ع`;
 
     const encodedMessage = encodeURIComponent(message);
-    window.open(`https://wa.me/9647722447722?text=${encodedMessage}`, '_blank');
+    window.open(`https://wa.me/${settings.whatsapp_number}?text=${encodedMessage}`, '_blank');
   };
 
   return (
