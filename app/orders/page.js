@@ -1,15 +1,15 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import Link from 'next/link';
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
-  const [tab, setTab] = useState('active'); // active or archive
+  const [tab, setTab] = useState('active');
 
   useEffect(() => {
     fetchOrders();
-    const interval = setInterval(fetchOrders, 5000); // تحديث تلقائي كل 5 ثواني
+    const interval = setInterval(fetchOrders, 5000);
     return () => clearInterval(interval);
   }, [tab]);
 
@@ -30,12 +30,12 @@ export default function OrdersPage() {
       .update({ is_completed: true })
       .eq('id', id);
 
-    if (error) alert('حدث خطأ أثناء تحديث الطلب');
+    if (error) alert('حدث خطأ');
     else fetchOrders();
   };
 
   const handleDeleteOrder = async (id) => {
-    if (!confirm('هل أنت متأكد من حذف هذا الطلب؟')) return;
+    if (!confirm('متأكد من الحذف؟')) return;
     const { error } = await supabase
       .from('orders')
       .delete()
@@ -45,7 +45,6 @@ export default function OrdersPage() {
     else fetchOrders();
   };
 
-  // دالة طباعة الوصل الحراري (جكن عمو ناجي)
   const handlePrintReceipt = (order) => {
     const printWindow = window.open('', '_blank');
     
@@ -55,7 +54,7 @@ export default function OrdersPage() {
       if (Array.isArray(items) && items.length > 0) {
         itemsList = items.map(i => `<tr><td>${i.name || i.title || 'وجبة'}</td><td>${i.quantity || 1}</td><td>${Number(i.price || 0).toLocaleString()} د.ع</td></tr>`).join('');
       } else {
-        itemsList = `<tr><td colspan="3">طلب عام / لا توجد تفاصيل وجبات مسجلة</td></tr>`;
+        itemsList = `<tr><td colspan="3">طلب عام / لا توجد تفاصيل</td></tr>`;
       }
     } catch (e) {
       itemsList = `<tr><td colspan="3">تفاصيل الوجبات غير متوفرة</td></tr>`;
@@ -120,7 +119,7 @@ export default function OrdersPage() {
           </div>
 
           <div class="footer">
-            <p>شكراً لطلبكم من جكن عمو ناجي ❤️ بالعافية مقدماً</p>
+            <p>شكراً لطلبكم من جكن عمو ناجي ❤️</p>
           </div>
         </body>
       </html>
@@ -134,131 +133,128 @@ export default function OrdersPage() {
         
         <div className="flex justify-between items-center border-b border-slate-800 pb-4">
           <h1 className="text-2xl font-black text-amber-500">إدارة الطلبات والديليفري 📦</h1>
-          <Link href="/" className="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-amber-400 font-bold px-4 py-2 rounded-xl text-xs transition">
+          <Link href="/" className="bg-slate-900 border border-slate-700 text-amber-400 font-bold px-4 py-2 rounded-xl text-xs">
             العودة للمتجر 🛍️
           </Link>
         </div>
 
-        {/* تابات التنقل بين الطلبات الجارية والأرشيف */}
         <div className="flex gap-2 bg-slate-900 p-1.5 rounded-2xl border border-slate-800 w-fit">
-          <button 
-            onClick={() => setTab('active')}
-            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition ${tab === 'active' ? 'bg-amber-500 text-slate-950 shadow-lg' : 'text-slate-400 hover:text-white'}`}
-          >
+          <button onClick={() => setTab('active')} className={`px-5 py-2.5 rounded-xl text-xs font-bold ${tab === 'active' ? 'bg-amber-500 text-slate-950' : 'text-slate-400'}`}>
             الطلبات الجارية ({orders.length})
           </button>
-          <button 
-            onClick={() => setTab('archive')}
-            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition ${tab === 'archive' ? 'bg-amber-500 text-slate-950 shadow-lg' : 'text-slate-400 hover:text-white'}`}
-          >
-            أرشيف الطلبات المكتملة
+          <button onClick={() => setTab('archive')} className={`px-5 py-2.5 rounded-xl text-xs font-bold ${tab === 'archive' ? 'bg-amber-500 text-slate-950' : 'text-slate-400'}`}>
+            الأرشيف
           </button>
         </div>
 
-        {/* قائمة الطلبات */}
         <div className="space-y-4">
           {orders.length === 0 ? (
             <div className="text-center py-16 bg-slate-900 border border-slate-800 rounded-2xl text-slate-400">
               لا توجد طلبات هنا حالياً 📭
             </div>
           ) : (
-            orders.map((order) => (
-              <div key={order.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-xl">
-                
-                <div className="flex justify-between items-start border-b border-slate-800 pb-3">
-                  <div className="flex items-center gap-3">
-                    <span className="bg-amber-500/10 text-amber-400 border border-amber-500/30 px-3 py-1 rounded-xl text-sm font-black">
-                      طلب #{order.id}
-                    </span>
-                    <span className="text-xs text-slate-400">
-                      {new Date(order.created_at).toLocaleString('ar-IQ')}
-                    </span>
-                  </div>
-                  <span className={`text-xs px-3 py-1 rounded-full font-bold ${order.is_completed ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'}`}>
-                    {order.is_completed ? 'مكتمل ✓' : 'قيد التحضير 👨‍🍳'}
-                  </span>
-                </div>
+            orders.map((order) => {
+              const subtotal = order.subtotal || (order.total_price ? order.total_price - 500 : 0);
+              const deliveryFee = order.delivery_fee || 500;
+              const totalPrice = order.total_price || (subtotal + deliveryFee);
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div className="space-y-1.5 bg-slate-950 p-3.5 rounded-xl border border-slate-800">
-                    <p><span className="text-slate-400">👤 الاسم:</span> <strong className="text-white">{order.customer_name || order.name || 'غير محدد'}</strong></p>
-                    <p><span className="text-slate-400">📞 الهاتف:</span> <a href={`tel:${order.phone}`} className="text-amber-400 underline font-bold">{order.phone || 'غير محدد'}</a></p>
-                    <p><span className="text-slate-400">📍 العنوان:</span> {order.address || 'غير محدد'}</p>
-                    {order.location_url && (
-                      <a href={order.location_url} target="_blank" rel="noopener noreferrer" className="inline-block mt-2 text-xs bg-blue-600/20 text-blue-400 border border-blue-500/30 px-3 py-1.5 rounded-lg font-bold">
-                        🗺️ عرض الموقع على الخريطة (GPS)
-                      </a>
-                    )}
+              return (
+                <div key={order.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-xl">
+                  
+                  <div className="flex flex-wrap justify-between items-center border-b border-slate-800 pb-3 gap-2">
+                    <div className="flex items-center gap-3">
+                      <span className="bg-amber-500/10 text-amber-400 border border-amber-500/30 px-3 py-1 rounded-xl text-sm font-black">
+                        طلب #{order.id}
+                      </span>
+                      <span className="text-xs text-slate-400">
+                        {new Date(order.created_at).toLocaleString('ar-IQ')}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => handlePrintReceipt(order)}
+                        className="bg-blue-600 hover:bg-blue-500 text-white font-black px-4 py-2 rounded-xl text-xs shadow-lg flex items-center gap-1.5"
+                      >
+                        🖨️ طباعة الوصل
+                      </button>
+
+                      <span className={`text-xs px-3 py-1 rounded-full font-bold ${order.is_completed ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'}`}>
+                        {order.is_completed ? 'مكتمل ✓' : 'قيد التحضير 👨‍🍳'}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="space-y-1.5 bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs text-slate-400">
-                        <span>مجموع الوجبات:</span>
-                        <span>{Number(subtotal).toLocaleString()} د.ع</span>
-                      </div>
-                      <div className="flex justify-between text-xs text-slate-400">
-                        <span>سعر التوصيل:</span>
-                        <span>{Number(deliveryFee).toLocaleString()} د.ع</span>
-                      </div>
-                      <div className="flex justify-between text-sm font-bold text-amber-400 border-t border-slate-800 pt-1 mt-1">
-                        <span>المبلغ الكلي:</span>
-                        <span>{Number(totalPrice).toLocaleString()} د.ع</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div className="space-y-1.5 bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+                      <p><span className="text-slate-400">👤 الاسم:</span> <strong className="text-white">{order.customer_name || order.name || 'غير محدد'}</strong></p>
+                      <p><span className="text-slate-400">📞 الهاتف:</span> <a href={`tel:${order.phone}`} className="text-amber-400 underline font-bold">{order.phone || 'غير محدد'}</a></p>
+                      <p><span className="text-slate-400">📍 العنوان:</span> {order.address || 'غير محدد'}</p>
+                      {order.location_url && (
+                        <a href={order.location_url} target="_blank" rel="noopener noreferrer" className="inline-block mt-2 text-xs bg-blue-600/20 text-blue-400 border border-blue-500/30 px-3 py-1.5 rounded-lg font-bold">
+                          🗺️ عرض الموقع (GPS)
+                        </a>
+                      )}
+                    </div>
+
+                    <div className="space-y-1.5 bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs text-slate-400">
+                          <span>مجموع الوجبات:</span>
+                          <span>{Number(subtotal).toLocaleString()} د.ع</span>
+                        </div>
+                        <div className="flex justify-between text-xs text-slate-400">
+                          <span>سعر التوصيل:</span>
+                          <span>{Number(deliveryFee).toLocaleString()} د.ع</span>
+                        </div>
+                        <div className="flex justify-between text-sm font-bold text-amber-400 border-t border-slate-800 pt-1 mt-1">
+                          <span>المبلغ الكلي:</span>
+                          <span>{Number(totalPrice).toLocaleString()} د.ع</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* تفاصيل الوجبات المطلوبة */}
-                <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
-                  <span className="text-xs font-bold text-slate-400 block">🍽️ الوجبات المطلوبة:</span>
-                  <div className="space-y-1">
-                    {(() => {
-                      try {
-                        const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
-                        if (Array.isArray(items) && items.length > 0) {
-                          return items.map((item, idx) => (
-                            <div key={idx} className="flex justify-between text-xs bg-slate-900 p-2 rounded-lg">
-                              <span>{item.name || item.title} × {item.quantity || 1}</span>
-                              <span className="text-amber-400 font-bold">{Number((item.price || 0) * (item.quantity || 1)).toLocaleString()} د.ع</span>
-                            </div>
-                          ));
-                        }
-                      } catch(e) {}
-                      return <p className="text-xs text-slate-400">تفاصيل الوجبات غير متوفرة أو طلب عام</p>;
-                    })()}
+                  <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
+                    <span className="text-xs font-bold text-slate-400 block">🍽️ الوجبات المطلوبة:</span>
+                    <div className="space-y-1">
+                      {(() => {
+                        try {
+                          const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+                          if (Array.isArray(items) && items.length > 0) {
+                            return items.map((item, idx) => (
+                              <div key={idx} className="flex justify-between text-xs bg-slate-900 p-2 rounded-lg">
+                                <span>{item.name || item.title} × {item.quantity || 1}</span>
+                                <span className="text-amber-400 font-bold">{Number((item.price || 0) * (item.quantity || 1)).toLocaleString()} د.ع</span>
+                              </div>
+                            ));
+                          }
+                        } catch(e) {}
+                        return <p className="text-xs text-slate-400">طلب عام</p>;
+                      })()}
+                    </div>
                   </div>
-                </div>
 
-                {/* أزرار الإجراءات - زر الطباعة صار بارز وواضح ومفصول لوحدة */}
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-800">
-                  <button 
-                    onClick={() => handlePrintReceipt(order)}
-                    className="bg-blue-600 hover:bg-blue-500 text-white font-black px-5 py-2.5 rounded-xl text-sm transition flex items-center gap-2 shadow-xl shadow-blue-600/30"
-                  >
-                    🖨️ طباعة وصل (جكن عمو ناجي)
-                  </button>
-
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
                     {!order.is_completed && (
                       <button 
                         onClick={() => handleCompleteOrder(order.id)}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-1"
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs"
                       >
                         ✓ تسليم وأرشفة الطلب
                       </button>
                     )}
                     <button 
                       onClick={() => handleDeleteOrder(order.id)}
-                      className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3.5 py-2.5 rounded-xl text-xs font-bold transition"
+                      className="bg-red-500/10 text-red-400 border border-red-500/30 px-3.5 py-2 rounded-xl text-xs font-bold"
                     >
                       حذف
                     </button>
                   </div>
-                </div>
 
-              </div>
-            ))
+                </div>
+              );
+            })
           )}
         </div>
 
