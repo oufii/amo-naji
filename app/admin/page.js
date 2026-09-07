@@ -10,7 +10,7 @@ export default function AdminPage() {
     delivery_fee: 500,
     is_delivery_available: true 
   });
-  const [newItem, setNewItem] = useState({ title: '', price: '', image: '', is_special: false });
+  const [newItem, setNewItem] = useState({ name: '', price: '', image: '', is_special: false });
   const [editingId, setEditingId] = useState(null);
   const [imageFile, setImageFile] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -44,7 +44,7 @@ export default function AdminPage() {
     e.preventDefault();
     const { error } = await supabase
       .from('restaurant_settings')
-      update({ 
+      .update({ 
         delivery_fee: Number(deliverySettings.delivery_fee),
         is_delivery_available: deliverySettings.is_delivery_available 
       })
@@ -84,7 +84,7 @@ export default function AdminPage() {
     }
 
     const itemData = {
-      title: newItem.title,
+      name: newItem.name,
       price: Number(newItem.price),
       image: imageUrl,
       is_special: newItem.is_special || false
@@ -95,8 +95,10 @@ export default function AdminPage() {
         .from('menu_items')
         .update(itemData)
         .eq('id', editingId);
-      if (error) alert('خطأ في التعديل');
-      else {
+      if (error) {
+        console.log(error);
+        alert('خطأ في التعديل');
+      } else {
         setEditingId(null);
         alert('تم تعديل الوجبة بنجاح ✓');
       }
@@ -104,11 +106,15 @@ export default function AdminPage() {
       const { error } = await supabase
         .from('menu_items')
         .insert([itemData]);
-      if (error) alert('خطأ في الإضافة');
-      else alert('تم إضافة الوجبة بنجاح ✓');
+      if (error) {
+        console.log(error);
+        alert('خطأ في الإضافة');
+      } else {
+        alert('تم إضافة الوجبة بنجاح ✓');
+      }
     }
 
-    setNewItem({ title: '', price: '', image: '', is_special: false });
+    setNewItem({ name: '', price: '', image: '', is_special: false });
     setImageFile(null);
     fetchData();
   };
@@ -116,7 +122,7 @@ export default function AdminPage() {
   const handleEdit = (item) => {
     setEditingId(item.id);
     setNewItem({ 
-      title: item.title || item.name, 
+      name: item.name || item.title || '', 
       price: item.price, 
       image: item.image || item.image_url || '',
       is_special: item.is_special ?? item.is_offer ?? false 
@@ -136,17 +142,12 @@ export default function AdminPage() {
     <div className="min-h-screen bg-slate-950 text-white font-sans dir-rtl p-6">
       <div className="max-w-4xl mx-auto space-y-8">
         
-        {/* رأس الصفحة والأزرار */}
+        {/* رأس الصفحة بدون زر الطلبات المزعج */}
         <div className="flex justify-between items-center border-b border-slate-800 pb-4">
           <h1 className="text-2xl font-black text-amber-500">لوحة التحكم بالمطعم ⚙️</h1>
-          <div className="flex gap-3">
-            <Link href="/orders" className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs transition">
-              📦 إدارة الطلبات والديلفري
-            </Link>
-            <Link href="/" className="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-amber-400 font-bold px-4 py-2 rounded-xl text-xs transition">
-              العودة للمتجر 🛍️
-            </Link>
-          </div>
+          <Link href="/" className="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-amber-400 font-bold px-4 py-2 rounded-xl text-xs transition">
+            العودة للمتجر 🛍️
+          </Link>
         </div>
 
         {/* إعدادات التوصيل */}
@@ -190,8 +191,8 @@ export default function AdminPage() {
                   type="text" 
                   placeholder="مثال: عرض عائلي دبل برجر" 
                   required
-                  value={newItem.title}
-                  onChange={(e) => setNewItem({...newItem, title: e.target.value})}
+                  value={newItem.name}
+                  onChange={(e) => setNewItem({...newItem, name: e.target.value})}
                   className="w-full bg-slate-950 p-3 rounded-xl border border-slate-800 text-white text-sm"
                 />
               </div>
@@ -218,7 +219,7 @@ export default function AdminPage() {
               />
             </div>
 
-            {/* خيار العروض المميزة الجديد */}
+            {/* خيار العروض المميزة */}
             <div className="flex items-center gap-3 bg-slate-950 p-3.5 rounded-xl border border-slate-800">
               <input 
                 type="checkbox" 
@@ -243,7 +244,7 @@ export default function AdminPage() {
               {editingId && (
                 <button 
                   type="button" 
-                  onClick={() => { setEditingId(null); setNewItem({ title: '', price: '', image: '', is_special: false }); }}
+                  onClick={() => { setEditingId(null); setNewItem({ name: '', price: '', image: '', is_special: false }); }}
                   className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-5 py-3 rounded-xl text-sm transition"
                 >
                   إلغاء
@@ -265,7 +266,7 @@ export default function AdminPage() {
                   )}
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-base">{item.title || item.name}</h3>
+                      <h3 className="font-bold text-base">{item.name || item.title}</h3>
                       {(item.is_special || item.is_offer) && (
                         <span className="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[10px] px-2 py-0.5 rounded-full font-bold">
                           عرض مميز 🔥
