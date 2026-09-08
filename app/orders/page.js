@@ -14,7 +14,6 @@ export default function OrdersPage() {
   }, [tab]);
 
   async function fetchOrders() {
-    // جلب كل الطلبات بدون شروط معقدة لتجنب أي خطأ بالفلترة
     const { data, error } = await supabase
       .from('orders')
       .select('*')
@@ -26,7 +25,6 @@ export default function OrdersPage() {
     }
 
     if (data) {
-      // فلترة الطلبات بناءً على التبويب المختار محلياً لضمان عدم اختفائها
       const filtered = data.filter(order => {
         const status = order.status || 'pending';
         if (tab === 'active') {
@@ -106,7 +104,7 @@ export default function OrdersPage() {
         </head>
         <body onload="window.print(); window.close();">
           <div class="header">
-            <h1>مطعم عمو ناجي</h1>
+            <h1>چكن عمو ناجي</h1>
             <p>هاتف: 07722447722</p>
           </div>
           
@@ -138,7 +136,7 @@ export default function OrdersPage() {
           </div>
 
           <div class="footer">
-            <p>شكراً لطلبكم من مطعم عمو ناجي ❤️</p>
+            <p>شكراً لطلبكم من چكن عمو ناجي ❤️</p>
           </div>
         </body>
       </html>
